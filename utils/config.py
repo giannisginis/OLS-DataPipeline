@@ -66,6 +66,18 @@ class CreateQueries:
             );
         """
 
+    CREATE_XREF = """
+                DROP TABLE IF EXISTS Xref;
+                CREATE  TABLE Xref (
+                    id       serial PRIMARY KEY,
+                    xref_id         varchar,
+                    terms_id        varchar,
+                    database        varchar,
+                    description     varchar,
+                    url             varchar
+                );
+            """
+
 
 class InsertQueries:
     INSERT_TERMS = """
@@ -123,6 +135,17 @@ class InsertQueries:
                         %(terms_id)s
                     );
                 """
+
+    INSERT_XREF = """
+                        INSERT INTO Xref (database, xref_id, description, url, terms_id)
+                        VALUES (
+                            %(database)s,
+                            %(id)s,
+                            %(description)s,
+                            %(url)s,
+                            %(terms_id)s
+                        );
+                    """
 
 
 class UpdateQueries:

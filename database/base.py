@@ -36,7 +36,9 @@ class Connection:
 
     @staticmethod
     def close_connection(connection):
+        # close the communication with the PostgreSQL
         connection.close()
+        print('Database connection closed.')
 
 
 

@@ -14,7 +14,7 @@ class MakeRequest:
             response = self.session.get(f'{OntologyLookupService.API}{ontology}/terms')
             response.raise_for_status()
 
-            if '_emdedded' not in response.json():
+            if '_embedded' not in response.json():
                 print('[ERROR] Invalid request. Check the ontology id')
                 sys.exit(1)
             else:

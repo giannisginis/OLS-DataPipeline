@@ -12,9 +12,9 @@ class OntologyLookupService:
 
 class CreateQueries:
     CREATE_TERMS = """
-            DROP TABLE IF EXISTS terms;
+            DROP TABLE IF EXISTS terms CASCADE;
             CREATE TABLE terms (
-                id        serial    PRIMARY KEY,
+                id                 varchar PRIMARY KEY,
                 iri                varchar,
                 label              varchar,
                 description        varchar,
@@ -26,7 +26,6 @@ class CreateQueries:
                 is_defining_ontology BOOLEAN NOT NULL,
                 has_children       BOOLEAN NOT NULL,
                 is_root            BOOLEAN NOT NULL,
-                short_form         varchar,
                 obo_id             varchar,
                 in_subset          varchar,
                 is_preferred_root  BOOLEAN NOT NULL,
@@ -53,7 +52,8 @@ class CreateQueries:
                 obo_id             varchar,
                 in_subset          varchar,
                 is_preferred_root  BOOLEAN NOT NULL,
-                child_id              varchar
+                child_terms_id           varchar,
+                CONSTRAINT fk_ontology_terms_id FOREIGN KEY(child_terms_id) REFERENCES terms (id)
             );
         """
 
@@ -62,7 +62,8 @@ class CreateQueries:
             CREATE  TABLE Synonyms (
                 id         serial PRIMARY KEY,
                 terms_id          varchar,
-                synonyms          varchar
+                synonyms          varchar,
+                CONSTRAINT fk_synonyms_terms_id FOREIGN KEY(terms_id) REFERENCES terms (id)
             );
         """
 
@@ -74,18 +75,20 @@ class CreateQueries:
                     terms_id        varchar,
                     database        varchar,
                     description     varchar,
-                    url             varchar
+                    url             varchar,
+                    CONSTRAINT fk_xref_terms_id FOREIGN KEY(terms_id) REFERENCES terms (id)
                 );
             """
 
 
 class InsertQueries:
     INSERT_TERMS = """
-                    INSERT INTO terms (iri, label, ontology_name,
+                    INSERT INTO terms (id, iri, label, ontology_name,
                     ontology_prefix,ontology_iri,is_obsolete,term_replaced_by,
-                    is_defining_ontology,has_children,is_root,short_form,obo_id,
+                    is_defining_ontology,has_children,is_root,obo_id,
                     in_subset, is_preferred_root, parents, description)
                     VALUES (
+                        %(short_form)s,
                         %(iri)s,
                         %(label)s,
                         %(ontology_name)s,
@@ -96,7 +99,6 @@ class InsertQueries:
                         %(is_defining_ontology)s,
                         %(has_children)s,
                         %(is_root)s,
-                        %(short_form)s,
                         %(obo_id)s,
                         %(in_subset)s,
                         %(is_preferred_root)s,
@@ -108,7 +110,7 @@ class InsertQueries:
                     INSERT INTO Ontology (iri, label, ontology_name,
                     ontology_prefix,ontology_iri,is_obsolete,term_replaced_by,
                     is_defining_ontology,has_children,is_root,short_form,obo_id,
-                    in_subset, is_preferred_root, description, child_id)
+                    in_subset, is_preferred_root, description, child_terms_id)
                     VALUES (
                         %(iri)s,
                         %(label)s,
@@ -125,7 +127,7 @@ class InsertQueries:
                         %(in_subset)s,
                         %(is_preferred_root)s,
                         %(description)s,
-                        %(child_id)s
+                        %(child_terms_id)s
                     );
                 """
     INSERT_SYNONYMS = """

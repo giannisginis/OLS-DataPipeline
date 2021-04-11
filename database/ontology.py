@@ -4,7 +4,7 @@ from typing import Iterator, Dict, Any
 import psycopg2.extras
 from utils.profiler import time_profile
 from utils.utils import is_not_none
-from utils.config import CreateQueries, InsertQueries
+from database.queries import CreateQueries, InsertQueries
 
 
 class Ontology:

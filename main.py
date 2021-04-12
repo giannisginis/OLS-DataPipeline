@@ -1,4 +1,4 @@
-from dataflow.flow import create
+from dataflow.flow import create, update
 import argparse
 from utils.logger import LogSystem
 
@@ -11,7 +11,7 @@ def main(arguments):
     if arguments.Mode.lower() == 'create':
         create(ontology=arguments.ontology.lower())
     elif arguments.Mode.lower() == 'update':
-        create(ontology=arguments.ontology.lower())
+        update(ontology=arguments.ontology.lower())
     else:
         logger.log_error("Unsupported Mode")
 

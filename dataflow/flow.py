@@ -1,6 +1,7 @@
 """ This module performs the high level functionality of the data flow"""
 
-from dataflow.iterators import iter_terms_from_api, iter_synonyms_from_response, iter_parents_from_response, iter_xref_from_response, iter_terms_ontology_from_response
+from dataflow.iterators import iter_terms_from_api, iter_synonyms_from_response, \
+    iter_parents_from_response, iter_xref_from_response, iter_terms_ontology_from_response
 from database.base import Connection
 from database.terms import Terms
 from database.synonyms import Synonyms
@@ -13,161 +14,112 @@ from utils.logger import LogSystem
 logger = LogSystem()
 
 
-def make_connection():
-    return Connection().connect()
+class Flow:
+    def __init__(self, ontology: str):
+        self.ontology_value = ontology
+        self._configure_flow()
+        # instantiate class tables
+        self.terms = Terms(self.connection, self.cursor)
+        self.synonyms = Synonyms(self.connection, self.cursor)
+        self.terms_synonyms = TermsSynonyms(self.connection, self.cursor)
+        self.ontology = Ontology(self.connection, self.cursor)
+        self.terms_ontology = TermsOntology(self.connection, self.cursor)
+        self.xref = Xref(self.connection, self.cursor)
 
+    @staticmethod
+    def _make_connection():
+        # connect to database
+        return Connection().connect()
 
-def close_connection(connection):
-    Connection().close_connection(connection)
+    def _close_connection(self):
+        # close the communication with the PostgreSQL
+        Connection().close_connection(self.connection)
 
+    def _collect_data(self):
+        # collect data from ols api for the specific ontology
+        return MakeRequest().get(ontology=self.ontology_value)
 
-def collect_data(ontology: str):
-    return MakeRequest().get(ontology=ontology)
+    def _configure_flow(self):
+        self.connection, self.cursor = self._make_connection()
+        self.response, self.session = self._collect_data()
 
+    def _create_tables(self):
+        self.terms.create_table()
+        logger.log_info("Created terms table")
 
-def configure_flow(ontology: str):
-    connection, cursor = make_connection()
-    response, session = collect_data(ontology=ontology)
+        self.synonyms.create_table()
+        logger.log_info("Created synonyms table")
 
-    return response, session, connection, cursor
+        self.terms_synonyms.create_table()
+        logger.log_info("Created terms-synonyms table")
 
+        self.ontology.create_table()
+        logger.log_info("Created ontology table")
 
-def create_tables(connection, cursor):
-    terms = Terms(connection, cursor)
-    terms.create_table()
-    logger.log_info("Created terms table")
+        self.terms_ontology.create_table()
+        logger.log_info("Created terms_ontology table")
 
-    synonyms = Synonyms(connection, cursor)
-    synonyms.create_table()
-    logger.log_info("Created synonyms table")
+        self.xref.create_table()
+        logger.log_info("Created xref table")
 
-    terms_synonyms = TermsSynonyms(connection, cursor)
-    terms_synonyms.create_table()
-    logger.log_info("Created terms-synonyms table")
+    def _insert(self):
+        # create an iterator, create a table and bulk insertion for terms metadata
+        terms_iter = iter_terms_from_api(response=self.response)
 
-    ontology = Ontology(connection, cursor)
-    ontology.create_table()
-    logger.log_info("Created ontology table")
+        logger.log_info("Executing Bulk insert to terms table")
+        self.terms.bulk_insert(terms_iter, page_size=20)
+        logger.log_info("Bulk insert finished")
 
-    terms_ontology = TermsOntology(connection, cursor)
-    terms_ontology.create_table()
-    logger.log_info("Created terms_ontology table")
+        del terms_iter
 
-    xref = Xref(connection, cursor)
-    xref.create_table()
-    logger.log_info("Created xref table")
+        # create an iterator, create a table and bulk insertion for synonyms metadata
+        synonyms_iter = iter_synonyms_from_response(response=self.response)
 
-    return terms, synonyms, terms_synonyms, ontology, terms_ontology, xref
+        logger.log_info("Executing Bulk insert to synonyms table")
+        self.synonyms.bulk_insert(synonyms_iter, page_size=118)
+        logger.log_info("Bulk insert finished")
+        del synonyms_iter
 
+        terms_synonyms_iter = iter_synonyms_from_response(response=self.response)
+        logger.log_info("Executing Bulk insert to terms-synonyms table")
+        self.terms_synonyms.bulk_insert(terms_synonyms_iter, page_size=118)
+        logger.log_info("Bulk insert finished")
+        del terms_synonyms_iter
 
-def create(ontology: str):
-    # connect to database and collect data from ols api for the specific ontology
-    response, session, connection, cursor = configure_flow(ontology=ontology)
+        # create an iterator, create a table and bulk insertion for parent links
+        parents_iter = iter_parents_from_response(response=self.response, session=self.session)
 
-    # create an iterator, create a table and bulk insertion for terms metadata
-    terms_iter = iter_terms_from_api(response=response)
+        logger.log_info("Executing Bulk insert to ontology table")
+        self.ontology.bulk_insert(parents_iter, page_size=20)
+        logger.log_info("Bulk insert finished")
+        del parents_iter
 
-    terms, synonyms, terms_synonyms, ontology, terms_ontology, xref = create_tables(connection, cursor)
-    logger.log_info("Executing Bulk insert to terms table")
-    terms.bulk_insert(terms_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
+        # create an iterator, create a table and bulk insertion for terms_ontology
+        terms_ontology_iter = iter_terms_ontology_from_response(response=self.response,
+                                                                session=self.session)
 
-    del terms_iter
+        logger.log_info("Executing Bulk insert to Terms-Ontology table")
+        self.terms_ontology.bulk_insert(terms_ontology_iter, page_size=20)
+        logger.log_info("Bulk insert finished")
+        del terms_ontology_iter
 
-    # create an iterator, create a table and bulk insertion for synonyms metadata
-    synonyms_iter = iter_synonyms_from_response(response=response)
+        # create an iterator, create a table and bulk insertion for MSH xref metadata
+        xref_iter = iter_xref_from_response(response=self.response)
 
-    logger.log_info("Executing Bulk insert to synonyms table")
-    synonyms.bulk_insert(synonyms_iter, page_size=118)
-    logger.log_info("Bulk insert finished")
-    del synonyms_iter
+        logger.log_info("Executing Bulk insert to xref table")
+        self.xref.bulk_insert(xref_iter, page_size=20)
+        logger.log_info("Bulk insert finished")
+        del xref_iter
 
-    terms_synonyms_iter = iter_synonyms_from_response(response=response)
-    logger.log_info("Executing Bulk insert to terms-synonyms table")
-    terms_synonyms.bulk_insert(terms_synonyms_iter, page_size=118)
-    logger.log_info("Bulk insert finished")
-    del terms_synonyms_iter
+    def create(self):
+        self._create_tables()
+        self._insert()
+        # close the communication with the PostgreSQL
+        self._close_connection()
 
-    # create an iterator, create a table and bulk insertion for parent links
-    parents_iter = iter_parents_from_response(response=response, session=session)
-
-    logger.log_info("Executing Bulk insert to ontology table")
-    ontology.bulk_insert(parents_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-    del parents_iter
-
-    # create an iterator, create a table and bulk insertion for terms_ontology
-    terms_ontology_iter = iter_terms_ontology_from_response(response=response, session=session)
-
-    logger.log_info("Executing Bulk insert to Terms-Ontology table")
-    terms_ontology.bulk_insert(terms_ontology_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-    del terms_ontology_iter
-
-    # create an iterator, create a table and bulk insertion for MSH xref metadata
-    xref_iter = iter_xref_from_response(response=response)
-
-    logger.log_info("Executing Bulk insert to xref table")
-    xref.bulk_insert(xref_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-    del xref_iter
-
-    # close the communication with the PostgreSQL
-    close_connection(connection)
-
-
-def update(ontology: str):
-    response, session, connection, cursor = configure_flow(ontology=ontology)
-    # create an iterator, create a table and bulk insertion for terms metadata
-    terms_iter = iter_terms_from_api(response=response)
-    terms_table = Terms(connection, cursor)
-    logger.log_info("Executing Bulk insert to terms table")
-    terms_table.bulk_insert(terms_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-
-    del terms_iter
-
-    # create an iterator, create a table and bulk insertion for synonyms metadata
-    synonyms_iter = iter_synonyms_from_response(response=response)
-    synonyms_table = Synonyms(connection, cursor)
-    logger.log_info("Executing Bulk insert to synonyms table")
-    synonyms_table.bulk_insert(synonyms_iter, page_size=118)
-    logger.log_info("Bulk insert finished")
-    del synonyms_iter
-
-    # create an iterator, create a table and bulk insertion for terms_synonyms
-    terms_synonyms_table = TermsSynonyms(connection, cursor)
-    terms_synonyms_iter = iter_synonyms_from_response(response=response)
-    logger.log_info("Executing Bulk insert to terms-synonyms table")
-    terms_synonyms_table.bulk_insert(terms_synonyms_iter, page_size=118)
-    logger.log_info("Bulk insert finished")
-    del terms_synonyms_iter
-
-    # create an iterator, create a table and bulk insertion for parent links
-    parents_iter = iter_parents_from_response(response=response, session=session)
-    ontology_table = Ontology(connection, cursor)
-    logger.log_info("Executing Bulk insert to ontology table")
-    ontology_table.bulk_insert(parents_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-    del parents_iter
-
-    # create an iterator, create a table and bulk insertion for terms_ontology
-    terms_ontology_iter = iter_terms_ontology_from_response(response=response, session=session)
-    terms_ontology = TermsOntology(connection, cursor)
-    logger.log_info("Executing Bulk insert to Terms-Ontology table")
-    terms_ontology.bulk_insert(terms_ontology_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-    del terms_ontology_iter
-
-    # create an iterator, create a table and bulk insertion for MSH xref metadata
-    xref_iter = iter_xref_from_response(response=response)
-    xref_table = Xref(connection, cursor)
-    logger.log_info("Executing Bulk insert to xref table")
-    xref_table.bulk_insert(xref_iter, page_size=20)
-    logger.log_info("Bulk insert finished")
-    del xref_iter
-
-    # close the communication with the PostgreSQL
-    close_connection(connection)
+    def update(self):
+        self._insert()
+        # close the communication with the PostgreSQL
+        self._close_connection()
 
 

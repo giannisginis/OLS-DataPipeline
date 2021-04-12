@@ -22,9 +22,9 @@ class CreateQueries:
         """
 
     CREATE_ONTOLOGY = """
-            DROP TABLE IF EXISTS Ontology;
-            CREATE TABLE Ontology (
-                id        serial    PRIMARY KEY,
+            DROP TABLE IF EXISTS ontology CASCADE;
+            CREATE TABLE ontology (
+                id        varchar    PRIMARY KEY,
                 iri                varchar,
                 label              varchar,
                 description        varchar,
@@ -36,22 +36,17 @@ class CreateQueries:
                 is_defining_ontology BOOLEAN NOT NULL,
                 has_children       BOOLEAN NOT NULL,
                 is_root            BOOLEAN NOT NULL,
-                short_form         varchar,
                 obo_id             varchar,
                 in_subset          varchar,
-                is_preferred_root  BOOLEAN NOT NULL,
-                child_terms_id           varchar,
-                CONSTRAINT fk_ontology_terms_id FOREIGN KEY(child_terms_id) REFERENCES terms (id)
+                is_preferred_root  BOOLEAN NOT NULL
             );
         """
 
     CREATE_SYNONYMS = """
-            DROP TABLE IF EXISTS Synonyms;
+            DROP TABLE IF EXISTS Synonyms CASCADE;
             CREATE  TABLE Synonyms (
                 id         serial PRIMARY KEY,
-                terms_id          varchar,
-                synonyms          varchar,
-                CONSTRAINT fk_synonyms_terms_id FOREIGN KEY(terms_id) REFERENCES terms (id)
+                synonyms          varchar
             );
         """
 
@@ -67,6 +62,22 @@ class CreateQueries:
                     CONSTRAINT fk_xref_terms_id FOREIGN KEY(terms_id) REFERENCES terms (id)
                 );
             """
+    CREATE_TERMS_SYNONYMS = """
+                 DROP TABLE IF EXISTS terms_synonyms;
+                 CREATE TABLE terms_synonyms (
+                      terms_id varchar REFERENCES terms (id) ON UPDATE CASCADE ON DELETE CASCADE,
+                      synonyms_id int REFERENCES synonyms (id) ON UPDATE CASCADE,
+                      CONSTRAINT terms_synonyms_pkey PRIMARY KEY (terms_id, synonyms_id)  
+                    );
+            """
+
+    CREATE_TERMS_ONTOLOGY = """
+                     DROP TABLE IF EXISTS terms_ontology;
+                     CREATE TABLE terms_ontology (
+                          terms_id varchar REFERENCES terms (id) ON UPDATE CASCADE ON DELETE CASCADE,
+                          ontology_id varchar REFERENCES ontology (id) ON UPDATE CASCADE
+                        );
+                """
 
 
 class InsertQueries:
@@ -92,14 +103,15 @@ class InsertQueries:
                         %(is_preferred_root)s,
                         %(parents)s,
                         %(description)s
-                    );
+                    ) ON CONFLICT (id) DO NOTHING;
                 """
     INSERT_ONTOLOGY = """
-                    INSERT INTO Ontology (iri, label, ontology_name,
+                    INSERT INTO Ontology (id, iri, label, ontology_name,
                     ontology_prefix,ontology_iri,is_obsolete,term_replaced_by,
-                    is_defining_ontology,has_children,is_root,short_form,obo_id,
-                    in_subset, is_preferred_root, description, child_terms_id)
+                    is_defining_ontology,has_children,is_root,obo_id,
+                    in_subset, is_preferred_root, description)
                     VALUES (
+                        %(short_form)s,
                         %(iri)s,
                         %(label)s,
                         %(ontology_name)s,
@@ -110,19 +122,16 @@ class InsertQueries:
                         %(is_defining_ontology)s,
                         %(has_children)s,
                         %(is_root)s,
-                        %(short_form)s,
                         %(obo_id)s,
                         %(in_subset)s,
                         %(is_preferred_root)s,
-                        %(description)s,
-                        %(child_terms_id)s
-                    );
+                        %(description)s
+                        ) ON CONFLICT (id) DO NOTHING;
                 """
     INSERT_SYNONYMS = """
-                    INSERT INTO Synonyms (synonyms, terms_id)
+                    INSERT INTO Synonyms (synonyms)
                     VALUES (
-                        %(synonyms)s,
-                        %(terms_id)s
+                        %(synonyms)s
                     );
                 """
 
@@ -137,6 +146,16 @@ class InsertQueries:
                         );
                     """
 
+    INSERT_TERMS_SYNONYMS = """
+                        INSERT INTO terms_synonyms (terms_id, synonyms_id)
+                        SELECT  %(terms_id)s, Synonyms.id
+                        FROM Synonyms
+                        WHERE Synonyms.synonyms = %(synonyms)s;
+                    """
 
-class UpdateQueries:
-    pass
+    INSERT_TERMS_ONTOLOGY = """
+                            INSERT INTO terms_ontology (terms_id, ontology_id)
+                            SELECT  %(child_terms_id)s, ontology.id
+                            FROM ontology
+                            WHERE ontology.id = %(parent_name)s;
+                        """

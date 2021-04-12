@@ -11,10 +11,19 @@ from database.terms_synonyms import TermsSynonyms
 from database.terms_ontology import TermsOntology
 from dataflow.make_request import MakeRequest
 from utils.logger import LogSystem
+
 logger = LogSystem()
 
 
 class Flow:
+    """
+    This class performs the high level procedures of the data flow.
+    */ Connection to DB
+    */ Data collection from OLS API
+    */ Table creation and data insertion or only data insertion based on the mode that client chosen
+    */ Closes connections to DB
+    """
+
     def __init__(self, ontology: str):
         self.ontology_value = ontology
         self._configure_flow()
@@ -28,22 +37,24 @@ class Flow:
 
     @staticmethod
     def _make_connection():
-        # connect to database
+        """ connect to database"""
         return Connection().connect()
 
     def _close_connection(self):
-        # close the communication with the PostgreSQL
+        """ close the communication with the PostgreSQL"""
         Connection().close_connection(self.connection)
 
     def _collect_data(self):
-        # collect data from ols api for the specific ontology
+        """ collect data from ols api for the specific ontology """
         return MakeRequest().get(ontology=self.ontology_value)
 
     def _configure_flow(self):
+        """ wraps up the initial procedures """
         self.connection, self.cursor = self._make_connection()
         self.response, self.session = self._collect_data()
 
     def _create_tables(self):
+        """ Creates the proper tables """
         self.terms.create_table()
         logger.log_info("Created terms table")
 
@@ -63,6 +74,8 @@ class Flow:
         logger.log_info("Created xref table")
 
     def _insert(self):
+        """ Builds the proper data generators and executes the bulk inserts"""
+
         # create an iterator, create a table and bulk insertion for terms metadata
         terms_iter = iter_terms_from_api(response=self.response)
 
@@ -112,14 +125,14 @@ class Flow:
         del xref_iter
 
     def create(self):
+        """ This mode creates tables and make insertions for a specific ontology"""
         self._create_tables()
         self._insert()
         # close the communication with the PostgreSQL
         self._close_connection()
 
     def update(self):
+        """ This mode updates the existing tables with data for a specific ontology"""
         self._insert()
         # close the communication with the PostgreSQL
         self._close_connection()
-
-

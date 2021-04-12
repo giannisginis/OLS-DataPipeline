@@ -12,6 +12,11 @@ class MakeRequest:
         self.logger = LogSystem()
 
     def get(self, ontology: str):
+        """
+        Http verb and error handling with the OLS API
+        :param ontology: Ontology ID
+        :return: the response of the api and a Requests session
+        """
         try:
             response = self.session.get(f'{OntologyLookupService.API}{ontology}/terms')
             response.raise_for_status()

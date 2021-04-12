@@ -1,4 +1,7 @@
 class CreateQueries:
+    """
+    This class defines the queries for the table creation
+    """
     CREATE_TERMS = """
             DROP TABLE IF EXISTS terms CASCADE;
             CREATE TABLE terms (
@@ -81,6 +84,9 @@ class CreateQueries:
 
 
 class InsertQueries:
+    """
+        This class defines the queries for the data insertion to tables
+    """
     INSERT_TERMS = """
                     INSERT INTO terms (id, iri, label, ontology_name,
                     ontology_prefix,ontology_iri,is_obsolete,term_replaced_by,

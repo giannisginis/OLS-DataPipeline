@@ -1,4 +1,4 @@
-from dataflow.flow import create, update
+from dataflow.flow import Flow
 import argparse
 from utils.logger import LogSystem
 
@@ -9,9 +9,9 @@ def main(arguments):
     logger.log_info("Running Pipeline")
 
     if arguments.Mode.lower() == 'create':
-        create(ontology=arguments.ontology.lower())
+        Flow(ontology=arguments.ontology.lower()).create()
     elif arguments.Mode.lower() == 'update':
-        update(ontology=arguments.ontology.lower())
+        Flow(ontology=arguments.ontology.lower()).update()
     else:
         logger.log_error("Unsupported Mode")
 

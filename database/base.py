@@ -1,3 +1,4 @@
+""" This module handles the communication with PostgreSQL"""
 import psycopg2
 from utils.config import DatabaseMetadata
 from utils.logger import LogSystem

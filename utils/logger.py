@@ -1,3 +1,4 @@
+""" A basic logger to handle all the execution messages"""
 import logging
 import os
 import datetime

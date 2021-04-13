@@ -20,7 +20,7 @@ class CreateQueries:
                 obo_id             varchar,
                 in_subset          varchar,
                 is_preferred_root  BOOLEAN NOT NULL,
-                parents            varchar
+                parent            varchar
             );
         """
 
@@ -49,7 +49,8 @@ class CreateQueries:
             DROP TABLE IF EXISTS Synonyms CASCADE;
             CREATE  TABLE Synonyms (
                 id         serial PRIMARY KEY,
-                synonyms          varchar
+                synonyms          varchar,
+                UNIQUE(synonyms)
             );
         """
 
@@ -62,6 +63,7 @@ class CreateQueries:
                     database        varchar,
                     description     varchar,
                     url             varchar,
+                    UNIQUE (xref_id, terms_id),
                     CONSTRAINT fk_xref_terms_id FOREIGN KEY(terms_id) REFERENCES terms (id)
                 );
             """
@@ -78,7 +80,8 @@ class CreateQueries:
                      DROP TABLE IF EXISTS terms_ontology;
                      CREATE TABLE terms_ontology (
                           terms_id varchar REFERENCES terms (id) ON UPDATE CASCADE ON DELETE CASCADE,
-                          ontology_id varchar REFERENCES ontology (id) ON UPDATE CASCADE
+                          ontology_id varchar REFERENCES ontology (id) ON UPDATE CASCADE,
+                          CONSTRAINT terms_ontology_pkey PRIMARY KEY (terms_id, ontology_id)
                         );
                 """
 
@@ -138,7 +141,7 @@ class InsertQueries:
                     INSERT INTO Synonyms (synonyms)
                     VALUES (
                         %(synonyms)s
-                    );
+                    )  ON CONFLICT (synonyms) DO NOTHING;
                 """
 
     INSERT_XREF = """
@@ -149,19 +152,21 @@ class InsertQueries:
                             %(description)s,
                             %(url)s,
                             %(terms_id)s
-                        );
+                        ) ON CONFLICT (xref_id, terms_id) DO NOTHING ;
                     """
 
     INSERT_TERMS_SYNONYMS = """
                         INSERT INTO terms_synonyms (terms_id, synonyms_id)
                         SELECT  %(terms_id)s, Synonyms.id
                         FROM Synonyms
-                        WHERE Synonyms.synonyms = %(synonyms)s;
+                        WHERE Synonyms.synonyms = %(synonyms)s
+                        ON CONFLICT (terms_id, synonyms_id) DO NOTHING;
                     """
 
     INSERT_TERMS_ONTOLOGY = """
                             INSERT INTO terms_ontology (terms_id, ontology_id)
                             SELECT  %(child_terms_id)s, ontology.id
                             FROM ontology
-                            WHERE ontology.id = %(parent_name)s;
+                            WHERE ontology.id = %(parent_name)s
+                            ON CONFLICT (terms_id, ontology_id) DO NOTHING;
                         """

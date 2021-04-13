@@ -76,7 +76,7 @@ class Flow:
     def _insert(self):
         """ Builds the proper data generators and executes the bulk inserts"""
 
-        # create an iterator, create a table and bulk insertion for terms metadata
+        # create an iterator and bulk insertion for terms metadata
         terms_iter = iter_terms_from_api(response=self.response)
 
         logger.log_info("Executing Bulk insert to terms table")
@@ -85,7 +85,7 @@ class Flow:
 
         del terms_iter
 
-        # create an iterator, create a table and bulk insertion for synonyms metadata
+        # create an iterator and bulk insertion for synonyms metadata
         synonyms_iter = iter_synonyms_from_response(response=self.response)
 
         logger.log_info("Executing Bulk insert to synonyms table")
@@ -93,13 +93,14 @@ class Flow:
         logger.log_info("Bulk insert finished")
         del synonyms_iter
 
+        # create an iterator and bulk insertion for relation between terms and synonyms
         terms_synonyms_iter = iter_synonyms_from_response(response=self.response)
         logger.log_info("Executing Bulk insert to terms-synonyms table")
         self.terms_synonyms.bulk_insert(terms_synonyms_iter, page_size=118)
         logger.log_info("Bulk insert finished")
         del terms_synonyms_iter
 
-        # create an iterator, create a table and bulk insertion for parent links
+        # create an iterator and bulk insertion for parent links
         parents_iter = iter_parents_from_response(response=self.response, session=self.session)
 
         logger.log_info("Executing Bulk insert to ontology table")
@@ -107,7 +108,7 @@ class Flow:
         logger.log_info("Bulk insert finished")
         del parents_iter
 
-        # create an iterator, create a table and bulk insertion for terms_ontology
+        # create an iterator and bulk insertion for relation between terms_ontology
         terms_ontology_iter = iter_terms_ontology_from_response(response=self.response,
                                                                 session=self.session)
 
@@ -116,7 +117,7 @@ class Flow:
         logger.log_info("Bulk insert finished")
         del terms_ontology_iter
 
-        # create an iterator, create a table and bulk insertion for MSH xref metadata
+        # create an iterator and bulk insertion for MSH xref metadata
         xref_iter = iter_xref_from_response(response=self.response)
 
         logger.log_info("Executing Bulk insert to xref table")

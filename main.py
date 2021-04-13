@@ -15,11 +15,13 @@ def main(arguments):
     else:
         logger.log_error("Unsupported Mode")
 
+    logger.log_info("Pipeline Finished")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="A data Pipeline for OLS API.")
     parser.add_argument("--ontology", type=str, default='EFO', help="define an ontology type")
-    parser.add_argument("--Mode", type=str, default='Create',
+    parser.add_argument("--Mode", type=str, default='create',
                         help="Define in which mode you want to run the pipeline. Choose between"
                              "<Create> and <Update>")
     args = parser.parse_args()

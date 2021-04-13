@@ -94,7 +94,7 @@ class InsertQueries:
                     INSERT INTO terms (id, iri, label, ontology_name,
                     ontology_prefix,ontology_iri,is_obsolete,term_replaced_by,
                     is_defining_ontology,has_children,is_root,obo_id,
-                    in_subset, is_preferred_root, parents, description)
+                    in_subset, is_preferred_root, parent, description)
                     VALUES (
                         %(short_form)s,
                         %(iri)s,

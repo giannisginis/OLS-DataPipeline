@@ -1,4 +1,4 @@
-# <img src="documents/icons/postgresql_docker_python.png" width="250" height="200"/>&nbsp;&nbsp;&nbsp;
+# <img src="documents/icons/python_postgres.png" width="350" height="150"/>&nbsp;&nbsp;&nbsp;
 # OLS-DataPipeline
 
 A Data Pipeline which loads data fetched from a remote source into a database.

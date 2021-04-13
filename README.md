@@ -40,10 +40,10 @@ With this approach in mind the final schema is the following:
 * `synonyms`: This table includes the synonyms per term with primary key the column `id`
 * `ontology`: This table includes the most metadata for parents per term based on the response of OLS API in the parent link.
 * `xref`: This table includes the MeSH term references (xref with MSH database) with foreign key reference to terms.id
-  * The conclusion here was that xref references has a `one to one` relation with terms entity which can be represented by a foreign key constrain.
+  * The conclusion here was that xref references has a `one to many` relation with terms entity which can be represented by a foreign key constrain.
 * `terms_synonyms`: This table represents the many to many relationship between terms and synonyms. The conclusion here was that can have common synonyms across many terms.
-* `terms_ontology`: This table represents the many to many relationship between ontology(parent links) and synonyms. The conclusion here was that we can have the same parent across many terms.
-
+* `terms_ontology`: This table represents the one to many relationship between ontology(parent links) and terms. The conclusion here was that we can have the same parent across many terms.
+The idea behind the extra table in this case was to have unique entries in ontology table as well.
 ## Python-Installation
 
 Installation guidelines can be found in [the installation document](documents/installation.md).
@@ -81,3 +81,11 @@ $ python main.py --Mode create --ontology EFO
 ```bash
 $ python main.py --Mode update --ontology AGRO
 ```
+
+## Future Improvements
+* For now this package handles the duplicate insertion by just skipping the duplicate entries. A possible
+improvement here could be to inform the client about which of how many were the duplicate entries detected.
+* Expose more database functionalities to the end user, like delete or update a specific entry of a table or
+drop a whole table.
+* A more clever refactoring of the Flow class. It seems a little bit repetitive right now.
+* Add proper tests.

@@ -13,7 +13,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pg_data:$HOME/Desktop/projects/DataPipeline/postgresql_data/
+      - pg_data:/var/lib/postgresql/data/
 
   pgadmin:
     container_name: pgadmin4_container

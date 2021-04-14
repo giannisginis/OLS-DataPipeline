@@ -1,34 +1,28 @@
-from dataflow.iterators import iter_terms_from_api, iter_synonyms_from_response, iter_parents_from_response
-from database.base import Connection
-from database.terms import Terms
-from database.synonyms import Synonyms
-from database.ontology import Ontology
-from dataflow.make_request import MakeRequest
+from dataflow.flow import Flow
+import argparse
+from utils.logger import LogSystem
 
-response, session = MakeRequest().get(ontology='efo')
-terms_iter = iter_terms_from_api(response=response)
-synonyms_iter = iter_synonyms_from_response(response=response)
-parents_iter = iter_parents_from_response(response=response, session=session)
-
-# terms = requests.get('http://www.ebi.ac.uk/ols/api/ontologies/efo/terms').json()
-
-connection, cursor = Connection.connect()
-
-terms_table = Terms(connection, cursor)
-terms_table.create_table()
-terms_table.bulk_insert(terms_iter, page_size=20)
-del terms_iter
-
-synonyms_table = Synonyms(connection, cursor)
-synonyms_table.create_table()
-synonyms_table.bulk_insert(synonyms_iter, page_size=118)
-del synonyms_iter
-
-ontology_table = Ontology(connection, cursor)
-ontology_table.create_table()
-ontology_table.bulk_insert(parents_iter, page_size=20)
-del parents_iter
+logger = LogSystem()
 
 
-Connection.close_connection(connection)
+def main(arguments):
+    logger.log_info("Running Pipeline")
 
+    if arguments.Mode.lower() == 'create':
+        Flow(ontology=arguments.ontology.lower()).create()
+    elif arguments.Mode.lower() == 'update':
+        Flow(ontology=arguments.ontology.lower()).update()
+    else:
+        logger.log_error("Unsupported Mode")
+
+    logger.log_info("Pipeline Finished")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="A data Pipeline for OLS API.")
+    parser.add_argument("--ontology", type=str, default='EFO', help="define an ontology type")
+    parser.add_argument("--Mode", type=str, default='create',
+                        help="Define in which mode you want to run the pipeline. Choose between"
+                             "<Create> and <Update>")
+    args = parser.parse_args()
+    main(args)

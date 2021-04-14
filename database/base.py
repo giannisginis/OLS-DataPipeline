@@ -1,15 +1,20 @@
+""" This module handles the communication with PostgreSQL"""
 import psycopg2
 from utils.config import DatabaseMetadata
+from utils.logger import LogSystem
 
 
 class Connection:
-    @staticmethod
-    def connect():
+
+    def __init__(self):
+        self.logger = LogSystem()
+
+    def connect(self):
         """ Connect to the PostgreSQL database server """
         try:
 
             # connect to the PostgreSQL server
-            print('Connecting to the PostgreSQL database...')
+            self.logger.log_info('Connecting to the PostgreSQL database...')
             connection = psycopg2.connect(
                 host=DatabaseMetadata.POSTGRES_HOST,
                 database=DatabaseMetadata.db_name,
@@ -23,20 +28,20 @@ class Connection:
             cursor = connection.cursor()
 
             # execute a statement
-            print('PostgreSQL database version:')
             cursor.execute('SELECT version()')
 
             # display the PostgreSQL database server version
             db_version = cursor.fetchone()
-            print(db_version)
+            self.logger.log_info(f'PostgreSQL database version: {db_version[0]}')
 
             return connection, cursor
         except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
+            self.logger.log_error(error)
 
-    @staticmethod
-    def close_connection(connection):
+    def close_connection(self, connection):
+        # close the communication with the PostgreSQL
         connection.close()
+        self.logger.log_info('Database connection closed.')
 
 
 

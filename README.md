@@ -69,7 +69,7 @@ Considering the postgreSQL there are two ways to use it:
 The full description of `docker-compose`, `pg-admin` access and `configuration` file can be found in [here](documents/docker-postgresql.md)
 
 ```Bash
-$ docker-compose up
+$ docker-compose up -d (detach mode)
 ```
 * The alternative is to install postgreSQL from scratch on your system (not properly tested). For this case define the correct database parameters in `utils/config.py`.
 ### Run Pipeline

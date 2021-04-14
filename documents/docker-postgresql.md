@@ -36,10 +36,11 @@ create a server in pgadmin.
 #### Useful Docker Commands
 
 * `docker ps`: check if the container is running or not
-* `docker image`: check if the image is running or not
+* `docker image ls`: check if the image is running or not
+* `docker volume ls`: check the mounted volumes
 * `docker rm pg_container`: delete the container
-* `docker-compose up`: create the container
+* `docker-compose up`: create the container (use -d for detach mode)
 * `docker exec -it pg_container bash`: use psql
-* `docker volume rm postgresql-snippets_pg_data`: delete the backup volume
+* `docker volume rm volume_name`: delete the backup volume
 * `docker-compose down --volumes`: delete the backup volume
 
